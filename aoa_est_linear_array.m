@@ -1,14 +1,15 @@
 clc; clear all; close all;
 %天线组单信道测试代码
 
+isCompensateAll  = 1;  % 1代表整个蓝牙包做频率补偿，0代表对每个天线进行频率补偿
 M = 2;%天线组天线个数，如果测三天线只需要改为3
 d = 6.25e-2;%天线阵列间距6.25cm
 lambda = 3e8/2.4e9;%蓝牙传输频段为2.4G
 theta = -60:0.5:60; %MUSIC谱峰搜索的范围
 A = exp(-1i*2*pi*[0:M-1]'*d/lambda*sin(theta*pi/180));
-gt=45;%测试角度
-dir = 'G:\实验室事务\导航组\室内定位\蓝牙AOA\测试数据\190311微电子楼四楼大厅NOKIA+TI天线联合测试\';
-for kn=1:30
+gt=20;%测试角度
+dir = 'G:\实验室事务\导航组\室内定位\蓝牙AOA\测试数据\190401美迪索科大厅的NOKIA改装天线测试\';
+for kn=1:20
     iq=dlmread([dir,num2str(gt),'deg/',num2str(kn,'%2d'),'.dat'],'',1,0);
     if kn == 60
         a=1;
@@ -24,17 +25,31 @@ for kn=1:30
     plot(1:length(data),real(data),'r--*',1:length(data),imag(data),'b--*');grid;xlim([1,512]);%天线实部与虚部的波形图
 %     subplot(212);plot(1:Ns,imag(x0(1,:)),'r--*',1:Ns,imag(x0(2,:)),'b--*',1:Ns,imag(x0(3,:)),'g--*');grid;xlim([1,Ns]);
 
-    figure(112);
-    NFFT = 2048;
+    NFFT = 2048;      
+    if isCompensateAll == 1
+        [~,Fs]=max(abs(fft(data(1:end),NFFT)));
+        Fs = (Fs -1)/NFFT*4e6;
+        delta_f = 250e3-Fs;
+        data = data.*exp(1i*2*pi*(delta_f)*(1:size(data,1))/4e6).';
+        data2 =[];
+    elseif isCompensateAll == 0
+            if M == 2
+                for i = 0:5
+                    [~,Fs]=max(abs(fft(data(80*i+1:80*(i+1)),NFFT)));
+                    Fs = (Fs -1)/NFFT*4e6;
+                    delta_f = 250e3-Fs;
+                    data2 =[data2 ;data(80*i+1:80*(i+1)).*exp(1i*2*pi*(delta_f)*(80*i+1:80*(i+1))/4e6).'];
+                end
+            elseif M == 3
+                 %TODO
+            end
+     end
+     
+ %   data =data2;
     figure(113);
     plot((0:NFFT-1)/NFFT*4e6,abs(fft(data(1:end),NFFT)));% FFT的频谱图，横坐标表示的是采样频率，见采样定理（DSP，P116)
     figure;freqz(data(1:480),NFFT) %Matlab自有函数画的频谱图
-        
-    [~,Fs]=max(abs(fft(data(1:end),NFFT)));
-    Fs = (Fs -1)/NFFT*4e6;
-    delta_f = 250e3-Fs;
-    data = data.*exp(1i*2*pi*(delta_f)*(1:size(data,1))/4e6).';
- 
+    
     x0 = [];
 
     if M==3

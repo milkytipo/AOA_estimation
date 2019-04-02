@@ -63,8 +63,8 @@ for kn=1:20
     end
     elseif M==2
         T = 80;
-    offT = 0;
-    N = 80;
+    offT = 20;
+    N = 50;
     
     for k=1:3
         x0 =[x0,  [data((k-1)*T*2+(1:N)+offT).';
